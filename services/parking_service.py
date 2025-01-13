@@ -1,49 +1,49 @@
-import numpy as np
+from services.parking_state import ParkingState
+import random
 import cv2
 import pandas as pd
-from models.yolo_model import model
+import numpy as np
+from ultralytics import YOLO
+
+model = YOLO('yolov8s.pt')
+
+parking_state = ParkingState()
+
+my_file = open("coco.txt", "r")
+data = my_file.read()
+class_list = data.split("\n")
 
 occupied_spaces = 0
 free_spaces = 12
-historical_data = []
+historical_data = [random.randint(0, 12) for _ in range(10)]
 
-# Area coordinates for parking spots
-area1 = [(52, 364), (30, 417), (73, 412), (88, 369)]
-area2 = [(105, 353), (86, 428), (137, 427), (146, 358)]
-area3 = [(159, 354), (150, 427), (204, 425), (203, 353)]
-area4 = [(217, 352), (219, 422), (273, 418), (261, 347)]
-area5 = [(274, 345), (286, 417), (338, 415), (321, 345)]
-area6 = [(336, 343), (357, 410), (409, 408), (382, 340)]
-area7 = [(396, 338), (426, 404), (479, 399), (439, 334)]
-area8 = [(458, 333), (494, 397), (543, 390), (495, 330)]
-area9 = [(511, 327), (557, 388), (603, 383), (549, 324)]
-area10 = [(564, 323), (615, 381), (654, 372), (596, 315)]
-area11 = [(616, 316), (666, 369), (703, 363), (642, 312)]
-area12 = [(674, 311), (730, 360), (764, 355), (707, 308)]
+list1, list2, list3, list4, list5, list6, list7, list8, list9, list10, list11, list12 = [], [], [], [], [], [], [], [], [], [], [], []
 
-areas = [np.array(coords, np.int32) for coords in 
-         [area1, area2, area3, area4, area5, area6, area7, area8, area9, area10, area11, area12]]
-
-class_list = [line.strip() for line in open("coco.txt")]
+area1=[(52,364),(30,417),(73,412),(88,369)]
+area2=[(105,353),(86,428),(137,427),(146,358)]
+area3=[(159,354),(150,427),(204,425),(203,353)]
+area4=[(217,352),(219,422),(273,418),(261,347)]
+area5=[(274,345),(286,417),(338,415),(321,345)]
+area6=[(336,343),(357,410),(409,408),(382,340)]
+area7=[(396,338),(426,404),(479,399),(439,334)]
+area8=[(458,333),(494,397),(543,390),(495,330)]
+area9=[(511,327),(557,388),(603,383),(549,324)]
+area10=[(564,323),(615,381),(654,372),(596,315)]
+area11=[(616,316),(666,369),(703,363),(642,312)]
+area12=[(674,311),(730,360),(764,355),(707,308)]
 
 def process_frame(frame):
-    frame=cv2.resize(frame,(1020,500))
-    results=model.predict(frame)
-    a=results[0].boxes.data
-    px=pd.DataFrame(a).astype("float")
+    
+    global list1, list2, list3, list4, list5, list6, list7, list8, list9, list10, list11, list12
 
-    list1=[]
-    list2=[]
-    list3=[]
-    list4=[]
-    list5=[]
-    list6=[]
-    list7=[]
-    list8=[]
-    list9=[]
-    list10=[]
-    list11=[]
-    list12=[]
+    frame = cv2.resize(frame, (1020, 500))
+    results = model.predict(frame)
+    detections = results[0].boxes.data
+    px = pd.DataFrame(detections).astype("float")
+
+    # Inicializamos las listas de detecciones
+    list1, list2, list3, list4, list5, list6, list7, list8, list9, list10, list11, list12 = [], [], [], [], [], [], [], [], [], [], [], []
+
     
     for index,row in px.iterrows():
         x1=int(row[0])
@@ -230,15 +230,35 @@ def process_frame(frame):
 
     cv2.putText(frame,str(space),(23,30),cv2.FONT_HERSHEY_PLAIN,3,(255,255,255),2)
     
-    global occupied_spaces, free_spaces
-    # Mantén el resto de tu código igual
-    o = a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9 + a10 + a11 + a12
-    free_spaces = 12 - o
-    occupied_spaces = o
+    # Calcular ocupados y libres
+    occupied_spaces = sum(len(lst) > 0 for lst in [list1, list2, list3, list4, list5, list6, list7, list8, list9, list10, list11, list12])
+    free_spaces = 12 - occupied_spaces
+
+    # Calcular el estado de cada área
+    area_status = {
+        "A1": len(list1) > 0,
+        "A2": len(list2) > 0,
+        "A3": len(list3) > 0,
+        "A4": len(list4) > 0,
+        "A5": len(list5) > 0,
+        "A6": len(list6) > 0,
+        "A7": len(list7) > 0,
+        "A8": len(list8) > 0,
+        "A9": len(list9) > 0,
+        "A10": len(list10) > 0,
+        "A11": len(list11) > 0,
+        "A12": len(list12) > 0,
+    }
+
+    # Actualizar el estado global
+    parking_state.update_state(occupied_spaces, free_spaces, area_status)
     
-    # Actualizamos el historial (mantener los últimos 10 valores)
     historical_data.append(occupied_spaces)
     if len(historical_data) > 10:
         historical_data.pop(0)
+
+    # Mostrar resultados en el frame (opcional)
+    cv2.putText(frame, f"Occupied: {occupied_spaces}", (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+    cv2.putText(frame, f"Free: {free_spaces}", (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
     
     return frame
