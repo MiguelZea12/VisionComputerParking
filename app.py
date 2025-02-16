@@ -4,6 +4,7 @@ from config.settings import Config
 from config.database import db, create_database
 from controllers.status_controller import status_controller
 from controllers.video_controller import video_controller
+from controllers.user_controller import usuario_controller
 from flask_migrate import Migrate
 from controllers.auth_controller import auth_controller
 from flask_jwt_extended import JWTManager
@@ -31,6 +32,7 @@ with app.app_context():
 app.register_blueprint(status_controller)
 app.register_blueprint(video_controller)
 app.register_blueprint(auth_controller)
+app.register_blueprint(usuario_controller)
 
 @app.route('/')
 def index():
