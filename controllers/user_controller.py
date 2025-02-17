@@ -34,3 +34,8 @@ def update_usuario(usuario_id):
 @jwt_required()
 def delete_usuario(usuario_id):
     return UsuarioService.delete_usuario(usuario_id)
+
+@usuario_controller.route('/usuario/actual', methods=['GET'])
+@jwt_required()
+def get_usuario_actual():
+    return UsuarioService.get_usuario_actual()

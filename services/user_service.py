@@ -1,4 +1,5 @@
 from models.user_profile import Usuario
+from flask_jwt_extended import get_jwt_identity
 from models.login import User
 from config.database import db
 from schemas.user_schemas import UsuarioSchema
@@ -95,3 +96,31 @@ class UsuarioService:
         except Exception as e:
             db.session.rollback()
             return {"message": f"Error al eliminar usuario: {str(e)}"}, 400
+        
+    @staticmethod
+    def get_usuario_actual():
+        user_id = get_jwt_identity()
+        try:
+            user_id = int(user_id)  # Convertir user_id a entero
+        except ValueError:
+            return {"message": "Error de autenticación"}, 400
+
+        print(f"🔍 Verificando usuario con ID: {user_id}")
+
+        # Unir Usuario con User para obtener el email
+        usuario = db.session.query(Usuario).filter_by(user_id=user_id).first()
+        
+        if not usuario:
+            print(f"⚠️ No existe un perfil de usuario para user_id={user_id}")  
+            return {"message": "Usuario no encontrado en la base de datos"}, 404
+
+        # Obtener el email desde la relación con User
+        email = usuario.user.email if usuario.user else "No disponible"
+
+        # Serializar los datos
+        usuario_data = usuario_schema.dump(usuario)
+        usuario_data["email"] = email  # Agregar el email al JSON de respuesta
+
+        return usuario_data, 200
+
+

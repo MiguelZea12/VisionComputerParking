@@ -26,8 +26,10 @@ class AuthService:
         """Autentica al usuario y genera un token JWT."""
         user = User.query.filter_by(email=email).first()
         if user and user.check_password(password):
-            access_token = create_access_token(identity=str(user.id), expires_delta=timedelta(hours=1))
-            user_data = user_schema.dump(user)  # Serializar usuario con Marshmallow
+            access_token = create_access_token(identity=str(user.id), expires_delta=timedelta(hours=1))  # ✅ Convertir a str
+            user_data = user_schema.dump(user)  
             return {"access_token": access_token, "user": user_data}, 200
         
         return {"message": "Credenciales inválidas"}, 401
+
+
